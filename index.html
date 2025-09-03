@@ -13,7 +13,7 @@
     <!-- استيراد Firebase Modular SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // قم بتصدير الدوال التي يجب أن تكون متاحة على مستوى النافذة
@@ -35,6 +35,9 @@
         window.orderBy = orderBy;
         window.getDocs = getDocs;
         window.setDoc = setDoc;
+        window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+        window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+        window.signOut = signOut;
     </script>
 
     <!-- قسم التنسيق (CSS) - يحتوي على جميع الأنماط الخاصة بالتصميم -->
@@ -109,12 +112,34 @@
             <button class="tab px-2 py-1 md:px-4 md:py-2 rounded-lg text-gray-700 text-sm md:text-base" onclick="showSection('sales')">المبيعات</button>
             <button class="tab px-2 py-1 md:px-4 md:py-2 rounded-lg text-gray-700 text-sm md:text-base" onclick="showSection('invoices-list')">الفواتير</button>
             <button class="tab px-2 py-1 md:px-4 md:py-2 rounded-lg text-gray-700 text-sm md:text-base" onclick="showSection('add-stock')">إضافة منتج</button>
+            <button class="tab px-2 py-1 md:px-4 md:py-2 rounded-lg text-gray-700 text-sm md:text-base" id="authTab" onclick="showSection('auth')">الدخول</button>
         </nav>
     </header>
 
     <main class="max-w-7xl mx-auto">
+        <!-- قسم المصادقة (Auth) - تسجيل الدخول / التسجيل -->
+        <section id="auth" class="section text-center max-w-sm mx-auto p-6 bg-white rounded-xl shadow-md">
+            <h1 class="text-2xl font-bold mb-6" id="authTitle">تسجيل الدخول</h1>
+            
+            <form id="authForm" class="space-y-4">
+                <div>
+                    <input type="email" id="authEmail" placeholder="البريد الإلكتروني" class="w-full p-3 border rounded-lg">
+                </div>
+                <div>
+                    <input type="password" id="authPassword" placeholder="كلمة المرور" class="w-full p-3 border rounded-lg">
+                </div>
+                <button type="submit" id="authBtn" class="w-full bg-indigo-600 text-white p-3 rounded-lg font-bold btn-animate">دخول</button>
+            </form>
+            
+            <button id="authSwitchBtn" class="mt-4 text-sm text-indigo-600 hover:underline">لا يوجد لديك حساب؟ سجل الآن.</button>
+            
+            <button id="logoutBtn" class="mt-6 w-full bg-red-600 text-white p-3 rounded-lg font-bold btn-animate hidden">تسجيل الخروج</button>
+
+            <p id="userIdDisplay" class="mt-4 text-xs text-gray-500 hidden">معرف المستخدم: <span class="font-mono"></span></p>
+        </section>
+
         <!-- قسم لوحة التحكم (Dashboard) -->
-        <section id="dashboard" class="section active grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <section id="dashboard" class="section grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             <div class="bg-white rounded-xl shadow-md p-4 md:p-6">
                 <h2 class="text-lg md:text-xl font-bold mb-2">إجمالي المبيعات الشهرية</h2>
                 <div class="text-2xl md:text-3xl font-extrabold text-indigo-600" id="monthlySalesCard">0.00</div>
@@ -293,9 +318,20 @@
     <script type="module">
         // ======= تهيئة Firebase والمصادقة (Authentication) =======
         // يتم توفير هذه المتغيرات بشكل آمن من قبل البيئة
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        // 🔹 إعدادات مشروع Firebase بتاعك
+const appId = "smart-sale-2025";  
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCs2ca5ZqTO1zwCzJOzio-WOUgPUGhuU_k",
+  authDomain: "smart-sale-2025.firebaseapp.com",
+  projectId: "smart-sale-2025",
+  storageBucket: "smart-sale-2025.firebasestorage.app",
+  messagingSenderId: "597534346668",
+  appId: "1:597534346668:web:a106c800088c1e1b937e09"
+};
+
+const initialAuthToken = null; // خليه زي ما هو
+
 
         let app;
         let auth;
@@ -318,18 +354,45 @@
                 onAuthStateChanged(auth, async (user) => {
                     if (user) {
                         userId = user.uid;
+                        // تحديث الواجهة للمستخدم المسجل دخوله
+                        document.getElementById('authTab').textContent = 'لوحة المستخدم';
+                        document.getElementById('authTitle').textContent = 'لوحة المستخدم';
+                        document.getElementById('authForm').classList.add('hidden');
+                        document.getElementById('authSwitchBtn').classList.add('hidden');
+                        document.getElementById('logoutBtn').classList.remove('hidden');
+                        document.getElementById('userIdDisplay').classList.remove('hidden');
+                        document.querySelector('#userIdDisplay span').textContent = userId;
+                        showSection('dashboard');
                         // تحميل البيانات الأولية بعد المصادقة
                         loadStock();
                         loadSales();
                         loadDashboard();
                         refreshDatalist();
                     } else {
+                        userId = null;
+                        // تحديث الواجهة للمستخدم غير المسجل
+                        document.getElementById('authTab').textContent = 'الدخول';
+                        document.getElementById('authTitle').textContent = 'تسجيل الدخول';
+                        document.getElementById('authForm').classList.remove('hidden');
+                        document.getElementById('authSwitchBtn').classList.remove('hidden');
+                        document.getElementById('logoutBtn').classList.add('hidden');
+                        document.getElementById('userIdDisplay').classList.add('hidden');
+                        showSection('auth');
+                        // مسح البيانات المعروضة
+                        document.getElementById('stockTable').innerHTML = '<tr><td colspan="5" class="text-center p-4 text-gray-500">الرجاء تسجيل الدخول لعرض البيانات.</td></tr>';
+                        document.getElementById('salesList').innerHTML = '<li class="p-4 text-gray-500 text-center">الرجاء تسجيل الدخول لعرض البيانات.</li>';
+                        document.getElementById('monthlySalesCard').textContent = '0.00';
+                        document.getElementById('monthlyProfitCard').textContent = '0.00';
+                        document.getElementById('lowStockCountCard').textContent = '0';
+                        document.getElementById('profitSummary').textContent = '...';
+                        
                         // محاولة تسجيل الدخول
                         try {
                             if (initialAuthToken) {
                                 await signInWithCustomToken(auth, initialAuthToken);
                             } else {
-                                await signInAnonymously(auth);
+                                // لا تفعل شيء، انتظر المستخدم لتسجيل الدخول
+                                //await signInAnonymously(auth);
                             }
                         } catch (e) {
                             console.error("❌ فشل تسجيل الدخول:", e);
@@ -344,6 +407,67 @@
             }
         }
         
+        // ======= دوال المصادقة (Auth) =======
+        const authForm = document.getElementById('authForm');
+        const authBtn = document.getElementById('authBtn');
+        const authTitle = document.getElementById('authTitle');
+        const authSwitchBtn = document.getElementById('authSwitchBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        let isRegistering = false;
+
+        authSwitchBtn.addEventListener('click', () => {
+            isRegistering = !isRegistering;
+            authTitle.textContent = isRegistering ? 'تسجيل جديد' : 'تسجيل الدخول';
+            authBtn.textContent = isRegistering ? 'إنشاء حساب' : 'دخول';
+            authSwitchBtn.textContent = isRegistering ? 'لديك حساب بالفعل؟ سجل الدخول.' : 'لا يوجد لديك حساب؟ سجل الآن.';
+            authForm.reset();
+        });
+
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+
+            if (!email || !password) {
+                toast("الرجاء إدخال البريد الإلكتروني وكلمة المرور.");
+                return;
+            }
+
+            try {
+                if (isRegistering) {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    toast("✅ تم إنشاء الحساب بنجاح! سجل الدخول الآن.");
+                } else {
+                    await signInWithEmailAndPassword(auth, email, password);
+                    toast("✅ تم تسجيل الدخول بنجاح!");
+                }
+            } catch (error) {
+                console.error("خطأ في المصادقة:", error);
+                let errorMessage = "حدث خطأ. حاول مرة أخرى.";
+                if (error.code === 'auth/invalid-email') {
+                    errorMessage = "البريد الإلكتروني غير صالح.";
+                } else if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    errorMessage = "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
+                } else if (error.code === 'auth/email-already-in-use') {
+                    errorMessage = "البريد الإلكتروني مستخدم بالفعل.";
+                } else if (error.code === 'auth/weak-password') {
+                     errorMessage = "كلمة المرور ضعيفة جدًا (يجب أن تكون 6 أحرف على الأقل).";
+                }
+                toast(`❌ ${errorMessage}`);
+            }
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                toast("👋 تم تسجيل الخروج بنجاح!");
+            } catch (error) {
+                console.error("خطأ في تسجيل الخروج:", error);
+                toast("❌ فشل تسجيل الخروج");
+            }
+        });
+
+
         // ======= دوال المساعدة (UI Helpers) =======
         // وظيفة لإظهار قسم معين من الواجهة وإخفاء الأقسام الأخرى
         window.showSection = function(id) {
@@ -399,6 +523,10 @@
         // معالج حدث لإرسال بيانات النموذج (إضافة أو تعديل منتج)
         addStockForm.addEventListener("submit", async (e) => {
             e.preventDefault();
+            if (!userId) {
+                toast("⚠️ يجب تسجيل الدخول أولاً.");
+                return;
+            }
             const name = document.getElementById("productName").value.trim();
             const qty = parseInt(document.getElementById("productQty").value);
             const cost = parseFloat(document.getElementById("productCost").value);
@@ -429,6 +557,7 @@
 
         // وظيفة لجلب وعرض بيانات المخزون في الجدول
         function loadStock() {
+            if (!userId) return;
             const tbody = document.getElementById("stockTable");
             const stockCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/stock`);
             const q = query(stockCollectionRef, orderBy("name"));
@@ -486,6 +615,10 @@
 
         // وظيفة لحذف منتج من المخزون
         window.deleteStock = function(id) {
+            if (!userId) {
+                toast("⚠️ يجب تسجيل الدخول أولاً.");
+                return;
+            }
             showConfirmModal(async (isConfirmed) => {
                 if (isConfirmed) {
                     try {
@@ -530,6 +663,10 @@
         // معالج حدث لإضافة منتج إلى الفاتورة الحالية
         document.getElementById("salesForm").addEventListener("submit", async (e) => {
             e.preventDefault();
+            if (!userId) {
+                toast("⚠️ يجب تسجيل الدخول أولاً.");
+                return;
+            }
             const name = saleProduct.value.trim();
             const qty = parseInt(saleQty.value);
             const customer = (customerNameInput.value || "").trim();
@@ -582,6 +719,10 @@
 
         // وظيفة لحذف منتج من الفاتورة الحالية
         window.deleteCurrentInvoiceItem = async function(index) {
+            if (!userId) {
+                toast("⚠️ يجب تسجيل الدخول أولاً.");
+                return;
+            }
             const item = currentInvoiceItems[index];
             if (!item) return;
             const product = allProducts.find(p => p.name === item.name);
@@ -628,6 +769,10 @@
 
         // وظيفة لحفظ الفاتورة النهائية في قاعدة البيانات
         window.finalizeAndSaveInvoice = async function() {
+            if (!userId) {
+                toast("⚠️ يجب تسجيل الدخول أولاً.");
+                return;
+            }
             if (currentInvoiceItems.length === 0) {
                 return toast("⚠️ الفاتورة فارغة. أضف منتجات أولاً.");
             }
@@ -726,6 +871,7 @@
         
         // وظيفة لعرض قائمة الفواتير
         function loadSales() {
+            if (!userId) return;
             const list = document.getElementById("salesList");
             const invoicesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/invoices`);
             const q = query(invoicesCollectionRef, orderBy("invoiceNumber", "desc"));
@@ -764,6 +910,7 @@
 
         // ======= دوال لوحة التحكم (Dashboard) =======
         function loadDashboard() {
+            if (!userId) return;
             const invoicesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/invoices`);
             onSnapshot(invoicesCollectionRef, (snapshot) => {
                 let monthlySales = 0;

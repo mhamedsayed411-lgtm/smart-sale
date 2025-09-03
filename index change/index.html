@@ -10,16 +10,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <!-- إضافة FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" xintegrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    
     <!-- استيراد Firebase Modular SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, deleteDoc, onSnapshot, query, where, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // قم بتصدير الدوال التي يجب أن تكون متاحة على مستوى النافذة
         window.initializeApp = initializeApp;
@@ -37,13 +32,12 @@
         window.onSnapshot = onSnapshot;
         window.query = query;
         window.where = where;
+        window.orderBy = orderBy;
         window.getDocs = getDocs;
         window.setDoc = setDoc;
         window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
         window.signInWithEmailAndPassword = signInWithEmailAndPassword;
         window.signOut = signOut;
-        window.serverTimestamp = serverTimestamp;
-        window.setLogLevel = setLogLevel;
     </script>
 
     <!-- قسم التنسيق (CSS) - يحتوي على جميع الأنماط الخاصة بالتصميم -->
@@ -81,7 +75,7 @@
         }
         #toast.show {
             visibility: visible;
-            animation: fadein 0.5s, fadeout 0.5s 2.2s;
+            animation: fadein 0.5s, fadeout 0.5s 2s;
         }
         @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
         @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
@@ -113,18 +107,18 @@
     <!-- قسم الهيكل (HTML) - يحتوي على جميع عناصر الواجهة المرئية -->
     <header class="bg-white rounded-xl shadow-lg mb-6">
         <nav class="flex justify-around p-4 md:p-6 border-b flex-wrap">
-            <button class="tab px-2 py-1 md:px-4 md:py-2 rounded-lg text-gray-700 active text-sm md:text-base" onclick="showSection('dashboard')"><i class="fas fa-home ml-2"></i>الرئيسية</button>
-            <button class="tab px-2 py-1 md:px-4 md:py-2 rounded-lg text-gray-700 text-sm md:text-base" onclick="showSection('stock')"><i class="fas fa-box-open ml-2"></i>المخزون</button>
-            <button class="tab px-2 py-1 md:px-4 md:py-2 rounded-lg text-gray-700 text-sm md:text-base" onclick="showSection('sales')"><i class="fas fa-cash-register ml-2"></i>المبيعات</button>
-            <button class="tab px-2 py-1 md:px-4 md:py-2 rounded-lg text-gray-700 text-sm md:text-base" onclick="showSection('invoices-list')"><i class="fas fa-file-invoice ml-2"></i>الفواتير</button>
-            <button class="tab px-2 py-1 md:px-4 md:py-2 rounded-lg text-gray-700 text-sm md:text-base" onclick="showSection('add-stock')"><i class="fas fa-plus-circle ml-2"></i>إضافة منتج</button>
-            <button class="tab px-2 py-1 md:px-4 md:py-2 rounded-lg text-gray-700 text-sm md:text-base" id="authTab" onclick="showSection('auth')"><i class="fas fa-sign-in-alt ml-2"></i>الدخول</button>
+            <button class="tab px-2 py-1 md:px-4 md:py-2 rounded-lg text-gray-700 active text-sm md:text-base" onclick="showSection('dashboard')">الرئيسية</button>
+            <button class="tab px-2 py-1 md:px-4 md:py-2 rounded-lg text-gray-700 text-sm md:text-base" onclick="showSection('stock')">المخزون</button>
+            <button class="tab px-2 py-1 md:px-4 md:py-2 rounded-lg text-gray-700 text-sm md:text-base" onclick="showSection('sales')">المبيعات</button>
+            <button class="tab px-2 py-1 md:px-4 md:py-2 rounded-lg text-gray-700 text-sm md:text-base" onclick="showSection('invoices-list')">الفواتير</button>
+            <button class="tab px-2 py-1 md:px-4 md:py-2 rounded-lg text-gray-700 text-sm md:text-base" onclick="showSection('add-stock')">إضافة منتج</button>
+            <button class="tab px-2 py-1 md:px-4 md:py-2 rounded-lg text-gray-700 text-sm md:text-base" id="authTab" onclick="showSection('auth')">الدخول</button>
         </nav>
     </header>
 
     <main class="max-w-7xl mx-auto">
         <!-- قسم المصادقة (Auth) - تسجيل الدخول / التسجيل -->
-        <section id="auth" class="section text-center max-w-sm mx-auto p-6 bg-white rounded-xl shadow-md active">
+        <section id="auth" class="section text-center max-w-sm mx-auto p-6 bg-white rounded-xl shadow-md">
             <h1 class="text-2xl font-bold mb-6" id="authTitle">تسجيل الدخول</h1>
             
             <form id="authForm" class="space-y-4">
@@ -134,12 +128,12 @@
                 <div>
                     <input type="password" id="authPassword" placeholder="كلمة المرور" class="w-full p-3 border rounded-lg">
                 </div>
-                <button type="submit" id="authBtn" class="w-full bg-indigo-600 text-white p-3 rounded-lg font-bold btn-animate"><i class="fas fa-sign-in-alt ml-2"></i>دخول</button>
+                <button type="submit" id="authBtn" class="w-full bg-indigo-600 text-white p-3 rounded-lg font-bold btn-animate">دخول</button>
             </form>
             
             <button id="authSwitchBtn" class="mt-4 text-sm text-indigo-600 hover:underline">لا يوجد لديك حساب؟ سجل الآن.</button>
             
-            <button id="logoutBtn" class="mt-6 w-full bg-red-600 text-white p-3 rounded-lg font-bold btn-animate hidden"><i class="fas fa-sign-out-alt ml-2"></i>تسجيل الخروج</button>
+            <button id="logoutBtn" class="mt-6 w-full bg-red-600 text-white p-3 rounded-lg font-bold btn-animate hidden">تسجيل الخروج</button>
 
             <p id="userIdDisplay" class="mt-4 text-xs text-gray-500 hidden">معرف المستخدم: <span class="font-mono"></span></p>
         </section>
@@ -147,19 +141,19 @@
         <!-- قسم لوحة التحكم (Dashboard) -->
         <section id="dashboard" class="section grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             <div class="bg-white rounded-xl shadow-md p-4 md:p-6">
-                <h2 class="text-lg md:text-xl font-bold mb-2 flex justify-between items-center">إجمالي المبيعات الشهرية <i class="fas fa-chart-line text-indigo-400"></i></h2>
+                <h2 class="text-lg md:text-xl font-bold mb-2">إجمالي المبيعات الشهرية</h2>
                 <div class="text-2xl md:text-3xl font-extrabold text-indigo-600" id="monthlySalesCard">0.00</div>
             </div>
             <div class="bg-white rounded-xl shadow-md p-4 md:p-6">
-                <h2 class="text-lg md:text-xl font-bold mb-2 flex justify-between items-center">صافي الربح الشهري <i class="fas fa-dollar-sign text-green-400"></i></h2>
+                <h2 class="text-lg md:text-xl font-bold mb-2">صافي الربح الشهري</h2>
                 <div class="text-2xl md:text-3xl font-extrabold text-green-600" id="monthlyProfitCard">0.00</div>
             </div>
             <div class="bg-white rounded-xl shadow-md p-4 md:p-6">
-                <h2 class="text-lg md:text-xl font-bold mb-2 flex justify-between items-center">المنتجات منخفضة المخزون <i class="fas fa-exclamation-triangle text-red-400"></i></h2>
+                <h2 class="text-lg md:text-xl font-bold mb-2">المنتجات منخفضة المخزون</h2>
                 <div class="text-2xl md:text-3xl font-extrabold text-red-600" id="lowStockCountCard">0</div>
             </div>
             <div class="bg-white rounded-xl shadow-md p-4 md:p-6">
-                <h2 class="text-lg md:text-xl font-bold mb-2 flex justify-between items-center">مجموع الأرباح <i class="fas fa-piggy-bank text-blue-400"></i></h2>
+                <h2 class="text-lg md:text-xl font-bold mb-2">مجموع الأرباح</h2>
                 <div class="text-xl md:text-2xl font-extrabold text-blue-600" id="profitSummary">...</div>
             </div>
         </section>
@@ -206,7 +200,7 @@
                     <input type="number" step="0.01" id="productPrice" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" required>
                 </div>
                 <div class="col-span-1 md:col-span-2">
-                    <button type="submit" id="saveStockBtn" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 btn-animate"><i class="fas fa-save ml-2"></i>إضافة</button>
+                    <button type="submit" id="saveStockBtn" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 btn-animate">إضافة</button>
                 </div>
             </form>
         </section>
@@ -230,7 +224,7 @@
                     <input type="number" id="saleQty" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" required>
                 </div>
                 <div class="col-span-1 md:col-span-2">
-                    <button type="submit" class="w-full py-2 px-4 rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 btn-animate"><i class="fas fa-cart-plus ml-2"></i>إضافة إلى الفاتورة</button>
+                    <button type="submit" class="w-full py-2 px-4 rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 btn-animate">إضافة إلى الفاتورة</button>
                 </div>
             </form>
 
@@ -255,7 +249,7 @@
                     الإجمالي الكلي: <span id="currentInvoiceTotal" class="text-indigo-600">0.00</span>
                 </div>
                 <div class="mt-6 flex justify-center">
-                    <button onclick="finalizeAndSaveInvoice()" class="py-2 md:py-3 px-4 md:px-6 rounded-lg shadow-lg text-sm md:text-lg font-bold text-white bg-blue-600 hover:bg-blue-700 btn-animate"><i class="fas fa-check-circle ml-2"></i>حفظ وعرض الفاتورة</button>
+                    <button onclick="finalizeAndSaveInvoice()" class="py-2 md:py-3 px-4 md:px-6 rounded-lg shadow-lg text-sm md:text-lg font-bold text-white bg-blue-600 hover:bg-blue-700 btn-animate">حفظ وطباعة الفاتورة النهائية</button>
                 </div>
             </div>
         </section>
@@ -290,7 +284,7 @@
                     الإجمالي: <span id="invTotal" class="text-indigo-600">0.00</span>
                 </div>
                 <div class="mt-6 flex justify-end">
-                    <button onclick="generateInvoicePDF(window.lastInvoiceData)" class="py-2 md:py-3 px-4 md:px-6 rounded-lg shadow-lg text-sm md:text-lg font-bold text-white bg-red-600 hover:bg-red-700 btn-animate"><i class="fas fa-file-pdf ml-2"></i>تحميل PDF</button>
+                    <button onclick="generateInvoicePDF(window.lastInvoiceData)" class="py-2 md:py-3 px-4 md:px-6 rounded-lg shadow-lg text-sm md:text-lg font-bold text-white bg-red-600 hover:bg-red-700 btn-animate">تحميل PDF</button>
                 </div>
             </div>
         </section>
@@ -323,9 +317,9 @@
     <!-- قسم الجافاسكربت (JS) - يحتوي على كل منطق التطبيق -->
     <script type="module">
         // ======= تهيئة Firebase والمصادقة (Authentication) =======
-        
-        // استخدام المتغيرات العامة التي يوفرها الـ Canvas
-        const appId = "smart-sale-2025";  
+        // يتم توفير هذه المتغيرات بشكل آمن من قبل البيئة
+        // 🔹 إعدادات مشروع Firebase بتاعك
+const appId = "smart-sale-2025";  
 
 const firebaseConfig = {
   apiKey: "AIzaSyCs2ca5ZqTO1zwCzJOzio-WOUgPUGhuU_k",
@@ -338,6 +332,7 @@ const firebaseConfig = {
 
 const initialAuthToken = null; // خليه زي ما هو
 
+
         let app;
         let auth;
         let db;
@@ -346,21 +341,21 @@ const initialAuthToken = null; // خليه زي ما هو
         // دالة تهيئة Firebase
         async function initializeFirebase() {
             try {
-                if (!firebaseConfig || !firebaseConfig.apiKey) {
-                    toast("❌ خطأ: لم يتم توفير إعدادات Firebase.");
-                    return;
+                if (!firebaseConfig) {
+                    throw new Error("لم يتم توفير إعدادات Firebase.");
                 }
+
+                // تهيئة تطبيق Firebase
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
-                setLogLevel('debug');
                 
                 // الاستماع لحالة المصادقة
                 onAuthStateChanged(auth, async (user) => {
                     if (user) {
                         userId = user.uid;
                         // تحديث الواجهة للمستخدم المسجل دخوله
-                        document.getElementById('authTab').innerHTML = '<i class="fas fa-user-circle ml-2"></i>لوحة المستخدم';
+                        document.getElementById('authTab').textContent = 'لوحة المستخدم';
                         document.getElementById('authTitle').textContent = 'لوحة المستخدم';
                         document.getElementById('authForm').classList.add('hidden');
                         document.getElementById('authSwitchBtn').classList.add('hidden');
@@ -376,7 +371,7 @@ const initialAuthToken = null; // خليه زي ما هو
                     } else {
                         userId = null;
                         // تحديث الواجهة للمستخدم غير المسجل
-                        document.getElementById('authTab').innerHTML = '<i class="fas fa-sign-in-alt ml-2"></i>الدخول';
+                        document.getElementById('authTab').textContent = 'الدخول';
                         document.getElementById('authTitle').textContent = 'تسجيل الدخول';
                         document.getElementById('authForm').classList.remove('hidden');
                         document.getElementById('authSwitchBtn').classList.remove('hidden');
@@ -390,18 +385,25 @@ const initialAuthToken = null; // خليه زي ما هو
                         document.getElementById('monthlyProfitCard').textContent = '0.00';
                         document.getElementById('lowStockCountCard').textContent = '0';
                         document.getElementById('profitSummary').textContent = '...';
+                        
+                        // محاولة تسجيل الدخول
+                        try {
+                            if (initialAuthToken) {
+                                await signInWithCustomToken(auth, initialAuthToken);
+                            } else {
+                                // لا تفعل شيء، انتظر المستخدم لتسجيل الدخول
+                                //await signInAnonymously(auth);
+                            }
+                        } catch (e) {
+                            console.error("❌ فشل تسجيل الدخول:", e);
+                            toast("❌ خطأ في المصادقة");
+                        }
                     }
                 });
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
 
             } catch (error) {
                 console.error("خطأ في تهيئة Firebase:", error);
-                toast(`❌ خطأ في تهيئة Firebase: ${error.message}`);
-                document.body.innerHTML = `<div class="text-center text-red-500 p-8">خطأ في تهيئة Firebase.</div>`;
+                toast(`خطأ في التهيئة: ${error.message}`);
             }
         }
         
@@ -416,7 +418,7 @@ const initialAuthToken = null; // خليه زي ما هو
         authSwitchBtn.addEventListener('click', () => {
             isRegistering = !isRegistering;
             authTitle.textContent = isRegistering ? 'تسجيل جديد' : 'تسجيل الدخول';
-            authBtn.innerHTML = isRegistering ? '<i class="fas fa-user-plus ml-2"></i>إنشاء حساب' : '<i class="fas fa-sign-in-alt ml-2"></i>دخول';
+            authBtn.textContent = isRegistering ? 'إنشاء حساب' : 'دخول';
             authSwitchBtn.textContent = isRegistering ? 'لديك حساب بالفعل؟ سجل الدخول.' : 'لا يوجد لديك حساب؟ سجل الآن.';
             authForm.reset();
         });
@@ -427,7 +429,7 @@ const initialAuthToken = null; // خليه زي ما هو
             const password = document.getElementById('authPassword').value;
 
             if (!email || !password) {
-                toast("⚠️ الرجاء إدخال البريد الإلكتروني وكلمة المرور.");
+                toast("الرجاء إدخال البريد الإلكتروني وكلمة المرور.");
                 return;
             }
 
@@ -449,7 +451,7 @@ const initialAuthToken = null; // خليه زي ما هو
                 } else if (error.code === 'auth/email-already-in-use') {
                     errorMessage = "البريد الإلكتروني مستخدم بالفعل.";
                 } else if (error.code === 'auth/weak-password') {
-                    errorMessage = "كلمة المرور ضعيفة جدًا (يجب أن تكون 6 أحرف على الأقل).";
+                     errorMessage = "كلمة المرور ضعيفة جدًا (يجب أن تكون 6 أحرف على الأقل).";
                 }
                 toast(`❌ ${errorMessage}`);
             }
@@ -483,7 +485,7 @@ const initialAuthToken = null; // خليه زي ما هو
             const el = document.getElementById("toast");
             el.textContent = msg;
             el.classList.add("show");
-            setTimeout(() => el.classList.remove("show"), 2500);
+            setTimeout(() => el.classList.remove("show"), 2200);
         }
 
         // دالة لعرض نافذة التأكيد المخصصة
@@ -494,22 +496,15 @@ const initialAuthToken = null; // خليه زي ما هو
             
             modal.classList.add('show');
             
-            const confirmHandler = () => {
+            confirmBtn.onclick = () => {
                 modal.classList.remove('show');
-                confirmBtn.removeEventListener('click', confirmHandler);
-                cancelBtn.removeEventListener('click', cancelHandler);
                 callback(true);
             };
-
-            const cancelHandler = () => {
+            
+            cancelBtn.onclick = () => {
                 modal.classList.remove('show');
-                confirmBtn.removeEventListener('click', confirmHandler);
-                cancelBtn.removeEventListener('click', cancelHandler);
                 callback(false);
             };
-
-            confirmBtn.addEventListener('click', confirmHandler);
-            cancelBtn.addEventListener('click', cancelHandler);
         }
 
         // ======= دوال المخزون (Stock CRUD) =======
@@ -522,8 +517,7 @@ const initialAuthToken = null; // خليه زي ما هو
         function resetStockForm() {
             addStockForm.reset();
             currentEditId = null;
-            saveStockBtn.innerHTML = '<i class="fas fa-save ml-2"></i>إضافة';
-            document.getElementById("productName").disabled = false;
+            saveStockBtn.textContent = "إضافة";
         }
 
         // معالج حدث لإرسال بيانات النموذج (إضافة أو تعديل منتج)
@@ -562,11 +556,11 @@ const initialAuthToken = null; // خليه زي ما هو
         });
 
         // وظيفة لجلب وعرض بيانات المخزون في الجدول
-        window.loadStock = function() {
+        function loadStock() {
             if (!userId) return;
             const tbody = document.getElementById("stockTable");
             const stockCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/stock`);
-            const q = query(stockCollectionRef);
+            const q = query(stockCollectionRef, orderBy("name"));
 
             onSnapshot(q, (snapshot) => {
                 tbody.innerHTML = "";
@@ -574,51 +568,53 @@ const initialAuthToken = null; // خليه زي ما هو
                 let lowStockCount = 0;
                 
                 if (snapshot.empty) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-gray-500">لا يوجد منتجات في المخزون.</td></tr>';
-                } else {
-                    snapshot.forEach(doc => {
-                        const product = { id: doc.id, ...doc.data() };
-                        allProducts.push(product);
-                        if (product.qty <= 5) {
-                            lowStockCount++;
-                        }
-                        const row = `
-                            <tr class="${product.qty <= 5 ? 'bg-red-50' : 'hover:bg-gray-100'} transition-colors">
-                                <td class="px-4 py-2 md:px-6 md:py-4 whitespace-nowrap text-sm text-gray-900">${product.name}</td>
-                                <td class="px-4 py-2 md:px-6 md:py-4 whitespace-now-wrap text-sm text-gray-900">${product.qty}</td>
-                                <td class="px-4 py-2 md:px-6 md:py-4 whitespace-nowrap text-sm text-gray-900">${product.cost.toFixed(2)}</td>
-                                <td class="px-4 py-2 md:px-6 md:py-4 whitespace-nowrap text-sm text-gray-900">${product.price.toFixed(2)}</td>
-                                <td class="px-4 py-2 md:px-6 md:py-4 whitespace-nowrap text-sm text-gray-900 text-center">
-                                    <button onclick="editItem('${doc.id}')" class="text-indigo-600 hover:text-indigo-900 ml-2"><i class="fas fa-edit"></i></button>
-                                    <button onclick="deleteItem('${doc.id}')" class="text-red-600 hover:text-red-900"><i class="fas fa-trash"></i></button>
-                                </td>
-                            </tr>
-                        `;
-                        tbody.innerHTML += row;
-                    });
+                    tbody.insertAdjacentHTML("beforeend", `
+                        <tr><td colspan="5" class="text-center p-4 text-gray-500">لا توجد منتجات حاليًا.</td></tr>
+                    `);
+                    return;
                 }
-                document.getElementById('lowStockCountCard').textContent = lowStockCount;
+
+                snapshot.forEach(d => {
+                    const s = d.data();
+                    allProducts.push({ id: d.id, ...s });
+                    const low = s.qty < 5;
+                    if (low) lowStockCount++;
+                    tbody.insertAdjacentHTML("beforeend", `
+                        <tr class="${low ? 'bg-red-50' : ''}">
+                            <td class="p-2">${s.name}</td>
+                            <td class="p-2 ${low ? 'text-red-600 font-bold' : ''}">${s.qty}</td>
+                            <td class="p-2">${Number(s.cost).toFixed(2)}</td>
+                            <td class="p-2">${Number(s.price).toFixed(2)}</td>
+                            <td class="p-2 flex justify-center gap-2">
+                                <button class="bg-yellow-500 text-white px-3 py-1 rounded-lg btn-animate" onclick="startEditStock('${d.id}')">✏️ تعديل</button>
+                                <button class="bg-red-600 text-white px-3 py-1 rounded-lg btn-animate" onclick="deleteStock('${d.id}')">🗑️ حذف</button>
+                            </td>
+                        </tr>
+                    `);
+                });
+                document.getElementById("lowStockCountCard").textContent = lowStockCount;
                 refreshDatalist();
+            }, (error) => {
+                console.error("خطأ في جلب المخزون:", error);
+                toast("❌ فشل تحميل بيانات المخزون");
             });
         }
 
-        // وظيفة لتعبئة نموذج التعديل
-        window.editItem = function(id) {
+        // وظيفة لبدء عملية تعديل منتج موجود
+        window.startEditStock = async function(id) {
             const product = allProducts.find(p => p.id === id);
-            if (product) {
-                document.getElementById("productName").value = product.name;
-                document.getElementById("productQty").value = product.qty;
-                document.getElementById("productCost").value = product.cost;
-                document.getElementById("productPrice").value = product.price;
-                currentEditId = id;
-                saveStockBtn.innerHTML = '<i class="fas fa-edit ml-2"></i>تحديث';
-                document.getElementById("productName").disabled = true; // منع تعديل الاسم
-                showSection('add-stock');
-            }
+            if (!product) return;
+            currentEditId = id;
+            document.getElementById("productName").value = product.name;
+            document.getElementById("productQty").value = product.qty;
+            document.getElementById("productCost").value = product.cost;
+            document.getElementById("productPrice").value = product.price;
+            saveStockBtn.textContent = "حفظ التعديلات";
+            showSection("add-stock");
         }
-        
-        // وظيفة لحذف منتج
-        window.deleteItem = function(id) {
+
+        // وظيفة لحذف منتج من المخزون
+        window.deleteStock = function(id) {
             if (!userId) {
                 toast("⚠️ يجب تسجيل الدخول أولاً.");
                 return;
@@ -626,327 +622,333 @@ const initialAuthToken = null; // خليه زي ما هو
             showConfirmModal(async (isConfirmed) => {
                 if (isConfirmed) {
                     try {
-                        const docRef = doc(db, `artifacts/${appId}/users/${userId}/stock`, id);
+                        const stockCollection = collection(db, `artifacts/${appId}/users/${userId}/stock`);
+                        const docRef = doc(stockCollection, id);
                         await deleteDoc(docRef);
-                        toast("🗑️ تم حذف المنتج بنجاح.");
+                        toast("🗑️ تم الحذف");
                     } catch (err) {
                         console.error(err);
-                        toast("❌ حدث خطأ أثناء الحذف.");
+                        toast("❌ حدث خطأ أثناء الحذف");
                     }
                 }
             });
         }
 
-        // ======= دوال المبيعات (Sales) =======
-        let currentInvoiceItems = [];
-        const currentInvoicePreview = document.getElementById('currentInvoicePreview');
-        const currentInvoiceItemsTable = document.getElementById('currentInvoiceItemsTable');
-        const currentInvoiceTotal = document.getElementById('currentInvoiceTotal');
-
-        const salesForm = document.getElementById('salesForm');
-        const saleProductInput = document.getElementById('saleProduct');
-        const saleQtyInput = document.getElementById('saleQty');
-        const salePriceHint = document.getElementById('salePriceHint');
-
-        // تحديث قائمة المنتجات في الـ datalist
-        window.refreshDatalist = function() {
-            const datalist = document.getElementById('productsDatalist');
-            datalist.innerHTML = '';
-            allProducts.forEach(product => {
-                const option = document.createElement('option');
-                option.value = product.name;
-                datalist.appendChild(option);
-            });
+        // وظيفة لتحديث قائمة المنتجات في حقل إدخال المبيعات
+        function refreshDatalist() {
+            const datalist = document.getElementById("productsDatalist");
+            datalist.innerHTML = allProducts.map(p => `<option value="${p.name}"></option>`).join('');
         }
 
-        // عرض سعر المنتج عند إدخال اسمه
-        saleProductInput.addEventListener('input', () => {
-            const productName = saleProductInput.value;
-            const product = allProducts.find(p => p.name === productName);
+        // ======= دوال المبيعات والفواتير =======
+        const saleProduct = document.getElementById("saleProduct");
+        const saleQty = document.getElementById("saleQty");
+        const salePriceHint = document.getElementById("salePriceHint");
+        const customerNameInput = document.getElementById("customerName");
+        let currentInvoiceItems = [];
+        window.lastInvoiceData = null;
+
+        // معالج حدث لعرض سعر المنتج عند كتابة اسمه
+        saleProduct.addEventListener("input", () => {
+            const name = saleProduct.value.trim();
+            if (!name) { salePriceHint.textContent = ""; return; }
+            const product = allProducts.find(p => p.name === name);
             if (product) {
-                salePriceHint.textContent = `السعر: ${product.price.toFixed(2)}`;
+                salePriceHint.textContent = `سعر البيع: ${Number(product.price).toFixed(2)} | متاح بالمخزون: ${product.qty}`;
             } else {
-                salePriceHint.textContent = '';
+                salePriceHint.textContent = "المنتج غير موجود بالمخزون";
             }
         });
 
-        // إضافة عنصر إلى الفاتورة المؤقتة
-        salesForm.addEventListener('submit', async (e) => {
+        // معالج حدث لإضافة منتج إلى الفاتورة الحالية
+        document.getElementById("salesForm").addEventListener("submit", async (e) => {
             e.preventDefault();
-            const productName = saleProductInput.value;
-            const qty = parseInt(saleQtyInput.value);
+            if (!userId) {
+                toast("⚠️ يجب تسجيل الدخول أولاً.");
+                return;
+            }
+            const name = saleProduct.value.trim();
+            const qty = parseInt(saleQty.value);
+            const customer = (customerNameInput.value || "").trim();
 
-            const product = allProducts.find(p => p.name === productName);
+            if (!name || isNaN(qty) || qty <= 0) return toast("⚠️ بيانات غير صالحة");
+
+            const product = allProducts.find(p => p.name === name);
+            if (!product) return toast("❌ المنتج غير موجود");
+
+            if (qty > product.qty) return toast("❌ الكمية غير متوفرة في المخزون");
             
-            if (!product) {
-                toast("⚠️ المنتج غير موجود في المخزون!");
-                return;
-            }
+            const stockCollection = collection(db, `artifacts/${appId}/users/${userId}/stock`);
+            const docRef = doc(stockCollection, product.id);
 
-            if (qty > product.qty) {
-                toast(`⚠️ الكمية المطلوبة (${qty}) أكبر من الكمية المتاحة في المخزون (${product.qty}).`);
-                return;
-            }
+            const unitPrice = Number(product.price);
+            const total = qty * unitPrice;
+            const cost = qty * Number(product.cost);
 
-            const existingItem = currentInvoiceItems.find(item => item.productName === productName);
-
-            if (existingItem) {
-                // تحديث الكمية
-                existingItem.qty += qty;
-                existingItem.total = existingItem.qty * existingItem.price;
+            const existingItemIndex = currentInvoiceItems.findIndex(i => i.name === name);
+            if(existingItemIndex > -1) {
+                const oldQty = currentInvoiceItems[existingItemIndex].qty;
+                const newQty = oldQty + qty;
+                const newTotal = newQty * unitPrice;
+                const newCost = newQty * Number(product.cost);
+                currentInvoiceItems[existingItemIndex].qty = newQty;
+                currentInvoiceItems[existingItemIndex].total = newTotal;
+                currentInvoiceItems[existingItemIndex].cost = newCost;
             } else {
-                // إضافة منتج جديد
-                currentInvoiceItems.push({
-                    productName: product.name,
-                    qty: qty,
-                    price: product.price,
-                    cost: product.cost,
-                    total: qty * product.price
-                });
+                currentInvoiceItems.push({ name, qty, unitPrice, total, cost });
             }
-
-            updateCurrentInvoiceUI();
-            salesForm.reset();
-            salePriceHint.textContent = '';
-            toast('✅ تم إضافة المنتج إلى الفاتورة.');
-        });
-        
-        // تحديث عرض الفاتورة المؤقتة
-        function updateCurrentInvoiceUI() {
-            currentInvoicePreview.classList.remove('hidden');
-            currentInvoiceItemsTable.innerHTML = '';
-            let total = 0;
             
-            if (currentInvoiceItems.length === 0) {
-                currentInvoicePreview.classList.add('hidden');
+            await updateDoc(docRef, { qty: product.qty - qty });
+            toast("✅ تم إضافة المنتج للفاتورة");
+            
+            e.target.reset();
+            salePriceHint.textContent = "";
+            customerNameInput.value = customer;
+            
+            renderCurrentInvoice();
+        });
+
+        // وظيفة لتعديل منتج في الفاتورة الحالية
+        window.editCurrentInvoiceItem = function(index) {
+            const item = currentInvoiceItems[index];
+            if (!item) return;
+            document.getElementById("saleProduct").value = item.name;
+            document.getElementById("saleQty").value = item.qty;
+            deleteCurrentInvoiceItem(index);
+        }
+
+        // وظيفة لحذف منتج من الفاتورة الحالية
+        window.deleteCurrentInvoiceItem = async function(index) {
+            if (!userId) {
+                toast("⚠️ يجب تسجيل الدخول أولاً.");
                 return;
             }
+            const item = currentInvoiceItems[index];
+            if (!item) return;
+            const product = allProducts.find(p => p.name === item.name);
+            if (!product) {
+                console.error("❌ المنتج غير موجود في المخزون لإعادة الكمية");
+                return;
+            }
+            const stockCollection = collection(db, `artifacts/${appId}/users/${userId}/stock`);
+            const docRef = doc(stockCollection, product.id);
+            await updateDoc(docRef, { qty: product.qty + item.qty });
+            currentInvoiceItems.splice(index, 1);
+            renderCurrentInvoice();
+            toast("🗑️ تم حذف المنتج من الفاتورة الحالية");
+        }
 
+        // وظيفة لعرض المنتجات المضافة في الفاتورة الحالية
+        function renderCurrentInvoice() {
+            const previewDiv = document.getElementById("currentInvoicePreview");
+            const tableBody = document.getElementById("currentInvoiceItemsTable");
+            const totalSpan = document.getElementById("currentInvoiceTotal");
+            if (currentInvoiceItems.length === 0) {
+                previewDiv.classList.add('hidden');
+                return;
+            }
+            previewDiv.classList.remove('hidden');
+            tableBody.innerHTML = "";
+            let total = 0;
             currentInvoiceItems.forEach((item, index) => {
-                total += item.total;
-                const row = `
-                    <tr class="hover:bg-gray-100 transition-colors">
-                        <td class="px-4 py-2 md:px-6 md:py-4 whitespace-nowrap text-sm text-gray-900">${item.productName}</td>
-                        <td class="px-4 py-2 md:px-6 md:py-4 whitespace-nowrap text-sm text-gray-900">${item.qty}</td>
-                        <td class="px-4 py-2 md:px-6 md:py-4 whitespace-nowrap text-sm text-gray-900">${item.total.toFixed(2)}</td>
-                        <td class="px-4 py-2 md:px-6 md:py-4 whitespace-nowrap text-sm text-gray-900 text-center">
-                            <button onclick="removeItemFromInvoice(${index})" class="text-red-600 hover:text-red-900"><i class="fas fa-trash"></i></button>
+                tableBody.insertAdjacentHTML("beforeend", `
+                    <tr>
+                        <td class="p-2">${item.name}</td>
+                        <td class="p-2">${item.qty}</td>
+                        <td class="p-2">${Number(item.total).toFixed(2)}</td>
+                        <td class="p-2 flex justify-center gap-2">
+                             <button class="bg-yellow-500 text-white px-3 py-1 rounded-lg btn-animate" onclick="editCurrentInvoiceItem(${index})">✏️ تعديل</button>
+                             <button class="bg-red-600 text-white px-3 py-1 rounded-lg btn-animate" onclick="deleteCurrentInvoiceItem(${index})">🗑️ حذف</button>
                         </td>
                     </tr>
-                `;
-                currentInvoiceItemsTable.innerHTML += row;
+                `);
+                total += item.total;
             });
-
-            currentInvoiceTotal.textContent = total.toFixed(2);
+            totalSpan.textContent = Number(total).toFixed(2);
         }
 
-        // إزالة عنصر من الفاتورة المؤقتة
-        window.removeItemFromInvoice = function(index) {
-            currentInvoiceItems.splice(index, 1);
-            updateCurrentInvoiceUI();
-            toast("تم حذف المنتج من الفاتورة.");
-        }
-
-        // حفظ الفاتورة في قاعدة البيانات
+        // وظيفة لحفظ الفاتورة النهائية في قاعدة البيانات
         window.finalizeAndSaveInvoice = async function() {
             if (!userId) {
                 toast("⚠️ يجب تسجيل الدخول أولاً.");
                 return;
             }
             if (currentInvoiceItems.length === 0) {
-                toast("⚠️ الفاتورة فارغة.");
-                return;
+                return toast("⚠️ الفاتورة فارغة. أضف منتجات أولاً.");
             }
+            const customer = (customerNameInput.value || "").trim();
+            const now = new Date();
+            const date = now.toLocaleDateString('ar-EG', { timeZone: 'Africa/Cairo' });
+            const time = now.toLocaleTimeString('ar-EG', { timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit' });
+            const total = currentInvoiceItems.reduce((sum, item) => sum + item.total, 0);
 
-            // تحديث الكميات في المخزون
-            for (const item of currentInvoiceItems) {
-                const product = allProducts.find(p => p.name === item.productName);
-                if (product) {
-                    const newQty = product.qty - item.qty;
-                    try {
-                        const productDocRef = doc(db, `artifacts/${appId}/users/${userId}/stock`, product.id);
-                        await updateDoc(productDocRef, { qty: newQty });
-                    } catch(err) {
-                        console.error("خطأ في تحديث المخزون:", err);
-                        toast(`❌ فشل تحديث كمية المنتج ${product.name}`);
-                        return;
-                    }
+            let invoiceNumber = 0;
+            const metadataCollection = collection(db, `artifacts/${appId}/users/${userId}/metadata`);
+            const counterRef = doc(metadataCollection, "invoiceCounter");
+            
+            try {
+                const counterDoc = await getDoc(counterRef);
+                if (!counterDoc.exists()) {
+                    await setDoc(counterRef, { lastNumber: 1 });
+                    invoiceNumber = 1;
+                } else {
+                    invoiceNumber = counterDoc.data().lastNumber + 1;
+                    await updateDoc(counterRef, { lastNumber: invoiceNumber });
                 }
+            } catch(e) {
+                 console.error("خطأ في تحديث عداد الفواتير:", e);
+                 invoiceNumber = now.getTime(); // fallback to timestamp
             }
             
-            const total = currentInvoiceItems.reduce((acc, item) => acc + item.total, 0);
-            const profit = currentInvoiceItems.reduce((acc, item) => acc + (item.price - item.cost) * item.qty, 0);
-            const customerName = document.getElementById('customerName').value || 'عميل نقدي';
+            const invoicesCollection = collection(db, `artifacts/${appId}/users/${userId}/invoices`);
+            const invoiceDoc = {
+                invoiceNumber,
+                customer,
+                date,
+                time,
+                total,
+                items: currentInvoiceItems,
+                status: "completed",
+            };
+            await addDoc(invoicesCollection, invoiceDoc);
+            toast("✅ تم حفظ الفاتورة بنجاح");
+            
+            window.lastInvoiceData = invoiceDoc;
+            renderInvoice(invoiceDoc);
+            showSection("invoice");
 
+            currentInvoiceItems = [];
+            renderCurrentInvoice();
+        }
+
+        // ======= دوال عرض وطباعة الفاتورة (Invoice + PDF) =======
+        // وظيفة لإنشاء ملف PDF من الفاتورة
+        window.generateInvoicePDF = async function(invoiceData) {
+            if (!invoiceData) return;
+            const invoiceElement = document.getElementById("invoice");
             try {
-                const salesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/sales`);
-                const docRef = await addDoc(salesCollectionRef, {
-                    customerName: customerName,
-                    items: JSON.stringify(currentInvoiceItems), // نحفظ المصفوفة كـ JSON string
-                    total: total,
-                    profit: profit,
-                    createdAt: serverTimestamp()
-                });
-                
-                toast('✅ تم حفظ الفاتورة بنجاح!');
-                window.lastInvoiceData = { id: docRef.id, customerName, total, items: currentInvoiceItems, createdAt: new Date() };
-                
-                // هنا نقوم بإنشاء كائن جديد لكي نضمن أن `items` هو مصفوفة قبل تمريره إلى `displayInvoice`
-                displayInvoice({
-                    id: docRef.id,
-                    customerName: customerName, // هذا هو الاسم الذي سيظهر في الفاتورة النهائية.
-                    total: total,
-                    items: currentInvoiceItems,
-                    createdAt: serverTimestamp(),
-                });
-                currentInvoiceItems = [];
-                updateCurrentInvoiceUI();
-                showSection('invoice');
-
-            } catch(err) {
-                console.error("خطأ في حفظ الفاتورة:", err);
-                toast("❌ حدث خطأ أثناء حفظ الفاتورة.");
+                const canvas = await html2canvas(invoiceElement, { scale: 2 });
+                const imgData = canvas.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
+                const pdfWidth = doc.internal.pageSize.getWidth();
+                const imgProps = doc.getImageProperties(imgData);
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                doc.save(`فاتورة_رقم_${invoiceData.invoiceNumber}.pdf`);
+            } catch (error) {
+                console.error("❌ فشل في إنشاء ملف PDF:", error);
+                toast("❌ حدث خطأ في إنشاء ملف PDF");
             }
         }
         
-        // عرض فاتورة محددة
-        window.displayInvoice = function(invoiceData) {
-            const invItems = document.getElementById('invItems');
-            
-            // إصلاح: قم بتحويل الـ `items` إذا كانت سلسلة نصية
-            const items = typeof invoiceData.items === 'string' ? JSON.parse(invoiceData.items) : invoiceData.items;
-
-            // إصلاح: تحقق من وجود `createdAt` قبل تحويله
-            const date = invoiceData.createdAt && typeof invoiceData.createdAt.toDate === 'function' ? invoiceData.createdAt.toDate() : new Date();
-
-            document.getElementById('invoiceNo').textContent = invoiceData.id;
-            document.getElementById('invoiceDate').textContent = date.toLocaleDateString('ar-EG');
-            
-            // هذا هو المكان الذي نأخذ فيه اسم العميل من بيانات الفاتورة ونعرضه
-            document.getElementById('invCustomer').textContent = invoiceData.customerName;
-
-            document.getElementById('invTotal').textContent = invoiceData.total.toFixed(2);
-
-            invItems.innerHTML = '';
-            items.forEach(item => {
-                const row = `
+        // وظيفة لعرض بيانات فاتورة معينة في واجهة المستخدم
+        window.renderInvoice = function(invoiceData) {
+            const invNoEl = document.getElementById("invoiceNo");
+            const invDateEl = document.getElementById("invoiceDate");
+            const invCustomerEl = document.getElementById("invCustomer");
+            const invItemsBody = document.getElementById("invItems");
+            const invTotalEl = document.getElementById("invTotal");
+            if (!invoiceData || invoiceData.items.length === 0) return;
+            invNoEl.textContent = invoiceData.invoiceNumber;
+            invDateEl.textContent = `${invoiceData.date} - ${invoiceData.time}`;
+            invCustomerEl.textContent = invoiceData.customer || "-";
+            invItemsBody.innerHTML = "";
+            let total = 0;
+            invoiceData.items.forEach(item => {
+                invItemsBody.insertAdjacentHTML("beforeend", `
                     <tr>
-                        <td class="p-2">${item.productName}</td>
-                        <td class="p-2">${item.price.toFixed(2)}</td>
+                        <td class="p-2">${item.name}</td>
+                        <td class="p-2">${Number(item.unitPrice).toFixed(2)}</td>
                         <td class="p-2">${item.qty}</td>
-                        <td class="p-2">${item.total.toFixed(2)}</td>
+                        <td class="p-2">${Number(item.total).toFixed(2)}</td>
                     </tr>
-                `;
-                invItems.innerHTML += row;
+                `);
+                total += item.total;
             });
+            invTotalEl.textContent = Number(total).toFixed(2);
+        }
+        
+        // وظيفة لعرض قائمة الفواتير
+        function loadSales() {
+            if (!userId) return;
+            const list = document.getElementById("salesList");
+            const invoicesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/invoices`);
+            const q = query(invoicesCollectionRef, orderBy("invoiceNumber", "desc"));
+            onSnapshot(q, (snapshot) => {
+                list.innerHTML = "";
+                if (snapshot.empty) {
+                    list.innerHTML = `<li class="p-4 text-gray-500 text-center">لا توجد فواتير سابقة.</li>`;
+                    return;
+                }
+                snapshot.forEach(d => {
+                    const s = d.data();
+                    const total = s.items ? s.items.reduce((sum, item) => sum + item.total, 0) : 0;
+                    list.insertAdjacentHTML("beforeend", `
+                        <li class="bg-white p-3 rounded-lg shadow-md flex flex-col md:flex-row justify-between items-start md:items-center">
+                            <span class="text-sm md:text-base mb-2 md:mb-0">
+                                فاتورة رقم: <b>${s.invoiceNumber}</b> — ${s.date} — ${s.items?.length || 0} منتج — إجمالي: ${Number(total).toFixed(2)} — عميل: ${s.customer || '-'}
+                            </span>
+                            <div class="flex gap-2">
+                                <button class="bg-indigo-600 text-white px-3 py-1 rounded-lg btn-animate" onclick="viewAndPrintInvoice(JSON.parse(decodeURIComponent('${encodeURIComponent(JSON.stringify(s))}')))">عرض & طباعة</button>
+                            </div>
+                        </li>
+                    `);
+                });
+            }, (error) => {
+                console.error("خطأ في جلب الفواتير:", error);
+                toast("❌ فشل تحميل قائمة الفواتير");
+            });
+        }
+        
+        // وظيفة جديدة لعرض وطباعة الفاتورة من القائمة
+        window.viewAndPrintInvoice = function(invoiceData) {
+            window.lastInvoiceData = invoiceData;
+            renderInvoice(invoiceData);
             showSection('invoice');
         }
 
-        // توليد ملف PDF للفاتورة
-        window.generateInvoicePDF = async function(invoiceData) {
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'a4', true);
-            const invoiceElement = document.getElementById('invoice').querySelector('.bg-white');
-            
-            // تهيئة الخط العربي
-            const fontUrl = 'https://cdnjs.cloudflare.com/ajax/libs/jsPDF/2.5.1/js/jspdf.umd.min.js'; // This is a placeholder, a custom font needs to be provided
-
-            toast('جاري توليد ملف PDF...');
-
-            const canvas = await html2canvas(invoiceElement, {
-                useCORS: true,
-                scale: 2,
-            });
-            const imgData = canvas.toDataURL('image/png');
-            const imgWidth = 190;
-            const pageHeight = 297;
-            const imgHeight = canvas.height * imgWidth / canvas.width;
-            let heightLeft = imgHeight;
-            let position = 0;
-
-            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
-
-            while (heightLeft >= 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-            }
-
-            pdf.save(`فاتورة-${invoiceData.id}.pdf`);
-            toast('✅ تم تحميل ملف PDF.');
-        }
-
-        // عرض قائمة الفواتير
-        window.loadSales = function() {
-            if (!userId) return;
-            const salesList = document.getElementById('salesList');
-            const salesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/sales`);
-            const q = query(salesCollectionRef);
-            
-            onSnapshot(q, (snapshot) => {
-                salesList.innerHTML = '';
-                if (snapshot.empty) {
-                    salesList.innerHTML = '<li class="p-4 text-gray-500 text-center">لا يوجد فواتير سابقة.</li>';
-                    return;
-                }
-                snapshot.forEach(doc => {
-                    const invoice = { id: doc.id, ...doc.data() };
-                    const date = invoice.createdAt && invoice.createdAt.toDate ? invoice.createdAt.toDate() : new Date();
-                    const li = document.createElement('li');
-                    li.className = 'bg-white rounded-xl shadow-md p-4 md:p-6 flex justify-between items-center transition-transform hover:scale-[1.01] cursor-pointer';
-                    li.innerHTML = `
-                        <div>
-                            <p class="font-bold text-lg text-gray-800">فاتورة رقم: ${doc.id.substring(0, 6)}</p>
-                            <p class="text-sm text-gray-600">التاريخ: ${date.toLocaleDateString('ar-EG')}</p>
-                            <p class="text-sm text-gray-600">العميل: ${invoice.customerName}</p>
-                        </div>
-                        <div class="text-left">
-                            <p class="text-xl font-extrabold text-indigo-600">${invoice.total.toFixed(2)}</p>
-                        </div>
-                    `;
-                    li.addEventListener('click', () => {
-                        displayInvoice(invoice);
-                        window.lastInvoiceData = invoice;
-                    });
-                    salesList.appendChild(li);
-                });
-            });
-        }
-
         // ======= دوال لوحة التحكم (Dashboard) =======
-        window.loadDashboard = async function() {
+        function loadDashboard() {
             if (!userId) return;
-            const salesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/sales`);
-            const now = new Date();
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            
-            // حساب إجمالي المبيعات والأرباح الشهرية
-            const q = query(salesCollectionRef, where('createdAt', '>=', startOfMonth));
-            onSnapshot(q, (snapshot) => {
+            const invoicesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/invoices`);
+            onSnapshot(invoicesCollectionRef, (snapshot) => {
                 let monthlySales = 0;
                 let monthlyProfit = 0;
+                let totalProfit = 0;
+
+                const now = new Date();
+                const currentMonth = now.getMonth();
+                const currentYear = now.getFullYear();
+
                 snapshot.forEach(doc => {
-                    const sale = doc.data();
-                    monthlySales += sale.total;
-                    monthlyProfit += sale.profit;
+                    const invoice = doc.data();
+                    const invoiceDate = new Date(invoice.date.split('/').reverse().join('-'));
+                    const isCurrentMonth = invoiceDate.getMonth() === currentMonth && invoiceDate.getFullYear() === currentYear;
+                    
+                    invoice.items.forEach(item => {
+                        const profit = item.total - item.cost;
+                        totalProfit += profit;
+                        if (isCurrentMonth) {
+                            monthlySales += item.total;
+                            monthlyProfit += profit;
+                        }
+                    });
                 });
-                document.getElementById('monthlySalesCard').textContent = monthlySales.toFixed(2);
-                document.getElementById('monthlyProfitCard').textContent = monthlyProfit.toFixed(2);
+                
+                document.getElementById("monthlySalesCard").textContent = `${Number(monthlySales).toFixed(2)}`;
+                document.getElementById("monthlyProfitCard").textContent = `${Number(monthlyProfit).toFixed(2)}`;
+                document.getElementById("profitSummary").textContent = `${Number(totalProfit).toFixed(2)}`;
+            }, (error) => {
+                console.error("خطأ في لوحة التحكم:", error);
+                toast("❌ فشل تحميل بيانات لوحة التحكم");
             });
-
-            // حساب إجمالي الأرباح الكلية
-            const allSalesDocs = await getDocs(salesCollectionRef);
-            let totalProfit = 0;
-            allSalesDocs.forEach(doc => {
-                totalProfit += doc.data().profit;
-            });
-            document.getElementById('profitSummary').textContent = totalProfit.toFixed(2);
         }
-
-        // تهيئة التطبيق عند تحميل الصفحة
-        window.onload = initializeFirebase;
+        
+        // ======= تهيئة التطبيق عند تحميل الصفحة =======
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeFirebase();
+        });
     </script>
 </body>
 </html>

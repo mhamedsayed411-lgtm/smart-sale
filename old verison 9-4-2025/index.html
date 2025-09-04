@@ -17,12 +17,13 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, deleteDoc, onSnapshot, query, where, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // قم بتصدير الدوال التي يجب أن تكون متاحة على مستوى النافذة
         window.initializeApp = initializeApp;
         window.getAuth = getAuth;
-        window.signInAnonymously = signInAnonymously;
         window.signInWithCustomToken = signInWithCustomToken;
         window.onAuthStateChanged = onAuthStateChanged;
         window.getFirestore = getFirestore;
@@ -35,12 +36,14 @@
         window.onSnapshot = onSnapshot;
         window.query = query;
         window.where = where;
-        window.orderBy = orderBy;
         window.getDocs = getDocs;
         window.setDoc = setDoc;
         window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
         window.signInWithEmailAndPassword = signInWithEmailAndPassword;
         window.signOut = signOut;
+        window.serverTimestamp = serverTimestamp;
+        window.setLogLevel = setLogLevel;
+        window.signInAnonymously = signInAnonymously;
     </script>
 
     <!-- قسم التنسيق (CSS) - يحتوي على جميع الأنماط الخاصة بالتصميم -->
@@ -121,7 +124,7 @@
 
     <main class="max-w-7xl mx-auto">
         <!-- قسم المصادقة (Auth) - تسجيل الدخول / التسجيل -->
-        <section id="auth" class="section text-center max-w-sm mx-auto p-6 bg-white rounded-xl shadow-md">
+        <section id="auth" class="section text-center max-w-sm mx-auto p-6 bg-white rounded-xl shadow-md active">
             <h1 class="text-2xl font-bold mb-6" id="authTitle">تسجيل الدخول</h1>
             
             <form id="authForm" class="space-y-4">
@@ -321,38 +324,44 @@
     <script type="module">
         // ======= تهيئة Firebase والمصادقة (Authentication) =======
         
-        // ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️
-        // ⭐️                                                                    ⭐️
-        // ⭐️   ❗️❗️❗️ هام جداً: الصق إعدادات مشروع Firebase الخاصة بك هنا  ❗️❗️❗️   ⭐️
-        // ⭐️   Get your config object from Firebase project settings and paste it here  ⭐️
-        // ⭐️                                                                    ⭐️
-        // ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️
-        const firebaseConfig = {
-            apiKey: "AIzaSyCXZi3VyX6SMkcG5FqvNSo4HbH1fE9tRQk", // استبدل هنا
-            authDomain: "smartsales-dad91.firebaseapp.com", // استبدل هنا
-            projectId: "smartsales-dad91", 
-            storageBucket: "smartsales-dad91.firebasestorage.app", // استبدل هنا
-            messagingSenderId: "171444835898", 
-            appId: "1:171444835898:web:018c91e9be3c9d5e830703",
-             measurementId: "G-VC4G85H06C" 
-        };
-        
         let app;
         let auth;
         let db;
         let userId;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
         // دالة تهيئة Firebase
         async function initializeFirebase() {
             try {
-                if (!firebaseConfig || firebaseConfig.apiKey === "YOUR_API_KEY") {
-                    throw new Error("لم يتم توفير إعدادات Firebase. يرجى تعديل الكود وإضافة الإعدادات الصحيحة.");
-                }
+                // استخدام المتغيرات العامة التي يوفرها الـ Canvas
+                // إعدادات Firebase
+        const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "smart-sale-2025.firebaseapp.com",
+  projectId: "smart-sale-2025",
+  storageBucket: "smart-sale-2025.appspot.com",
+  messagingSenderId: "597534346668",
+  appId: "1:597534346668:web:a106c800088c1e1b937e09"
+};
 
-                // تهيئة تطبيق Firebase
+const initialAuthToken = null; // خليه زي ما هو
+
+try {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+} catch (error) {
+  console.error("❌ خطأ في تهيئة Firebase:", error);
+}
+
+                if (!firebaseConfig || !firebaseConfig.apiKey) {
+                    toast("❌ خطأ: لم يتم توفير إعدادات Firebase.");
+                    return;
+                }
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
+                setLogLevel('debug');
                 
                 // الاستماع لحالة المصادقة
                 onAuthStateChanged(auth, async (user) => {
@@ -391,14 +400,16 @@
                         document.getElementById('profitSummary').textContent = '...';
                     }
                 });
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
 
             } catch (error) {
                 console.error("خطأ في تهيئة Firebase:", error);
-                toast(error.message);
-                document.body.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl relative text-center m-4" role="alert">
-                    <strong class="font-bold">خطأ في الإعدادات!</strong>
-                    <span class="block sm:inline">${error.message}</span>
-                </div>`;
+                toast(`❌ خطأ في تهيئة Firebase: ${error.message}`);
+                document.body.innerHTML = `<div class="text-center text-red-500 p-8">خطأ في تهيئة Firebase.</div>`;
             }
         }
         
@@ -420,11 +431,15 @@
 
         authForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (!auth || !db) {
+                toast("⚠️ جاري تهيئة التطبيق، يرجى المحاولة مرة أخرى.");
+                return;
+            }
             const email = document.getElementById('authEmail').value;
             const password = document.getElementById('authPassword').value;
 
             if (!email || !password) {
-                toast("الرجاء إدخال البريد الإلكتروني وكلمة المرور.");
+                toast("⚠️ الرجاء إدخال البريد الإلكتروني وكلمة المرور.");
                 return;
             }
 
@@ -455,7 +470,6 @@
         logoutBtn.addEventListener('click', async () => {
             try {
                 await signOut(auth);
-                toast("👋 تم تسجيل الخروج بنجاح!");
             } catch (error) {
                 console.error("خطأ في تسجيل الخروج:", error);
                 toast("❌ فشل تسجيل الخروج");
@@ -520,6 +534,7 @@
             addStockForm.reset();
             currentEditId = null;
             saveStockBtn.innerHTML = '<i class="fas fa-save ml-2"></i>إضافة';
+            document.getElementById("productName").disabled = false;
         }
 
         // معالج حدث لإرسال بيانات النموذج (إضافة أو تعديل منتج)
@@ -540,7 +555,7 @@
             }
 
             try {
-                const stockCollection = collection(db, `users/${userId}/stock`);
+                const stockCollection = collection(db, `artifacts/${appId}/users/${userId}/stock`);
                 if (currentEditId) {
                     const docRef = doc(stockCollection, currentEditId);
                     await updateDoc(docRef, { name, qty, cost, price });
@@ -558,11 +573,14 @@
         });
 
         // وظيفة لجلب وعرض بيانات المخزون في الجدول
-        function loadStock() {
-            if (!userId) return;
+        window.loadStock = function() {
+            if (!userId) {
+                console.log("UserID is not defined, skipping loadStock.");
+                return;
+            }
             const tbody = document.getElementById("stockTable");
-            const stockCollectionRef = collection(db, `users/${userId}/stock`);
-            const q = query(stockCollectionRef, orderBy("name"));
+            const stockCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/stock`);
+            const q = query(stockCollectionRef);
 
             onSnapshot(q, (snapshot) => {
                 tbody.innerHTML = "";
@@ -570,407 +588,389 @@
                 let lowStockCount = 0;
                 
                 if (snapshot.empty) {
-                    tbody.insertAdjacentHTML("beforeend", `
-                        <tr><td colspan="5" class="text-center p-4 text-gray-500">لا توجد منتجات حاليًا.</td></tr>
-                    `);
-                    document.getElementById("lowStockCountCard").textContent = 0;
-                    return;
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-gray-500">لا يوجد منتجات في المخزون.</td></tr>';
+                } else {
+                    snapshot.forEach(doc => {
+                        const product = { id: doc.id, ...doc.data() };
+                        allProducts.push(product);
+                        if (product.qty <= 5) {
+                            lowStockCount++;
+                        }
+                        const row = `
+                            <tr class="${product.qty <= 5 ? 'bg-red-50' : 'hover:bg-gray-100'} transition-colors">
+                                <td class="px-4 py-2 md:px-6 md:py-4 whitespace-nowrap text-sm text-gray-900">${product.name}</td>
+                                <td class="px-4 py-2 md:px-6 md:py-4 whitespace-now-wrap text-sm text-gray-900">${product.qty}</td>
+                                <td class="px-4 py-2 md:px-6 md:py-4 whitespace-nowrap text-sm text-gray-900">${product.cost.toFixed(2)}</td>
+                                <td class="px-4 py-2 md:px-6 md:py-4 whitespace-nowrap text-sm text-gray-900">${product.price.toFixed(2)}</td>
+                                <td class="px-4 py-2 md:px-6 md:py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                                    <button onclick="editItem('${doc.id}')" class="text-indigo-600 hover:text-indigo-900 ml-2"><i class="fas fa-edit"></i></button>
+                                    <button onclick="deleteItem('${doc.id}')" class="text-red-600 hover:text-red-900"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += row;
+                    });
                 }
-
-                snapshot.forEach(d => {
-                    const s = d.data();
-                    allProducts.push({ id: d.id, ...s });
-                    const low = s.qty < 5;
-                    if (low) lowStockCount++;
-                    tbody.insertAdjacentHTML("beforeend", `
-                        <tr class="${low ? 'bg-red-50' : ''}">
-                            <td class="px-4 py-2">${s.name}</td>
-                            <td class="px-4 py-2 ${low ? 'text-red-600 font-bold' : ''}">${s.qty}</td>
-                            <td class="px-4 py-2">${Number(s.cost).toFixed(2)}</td>
-                            <td class="px-4 py-2">${Number(s.price).toFixed(2)}</td>
-                            <td class="px-4 py-2 flex justify-center gap-2 flex-wrap">
-                                <button title="تعديل" class="bg-yellow-500 text-white w-8 h-8 rounded-lg btn-animate text-sm flex items-center justify-center" onclick="startEditStock('${d.id}')"><i class="fas fa-pencil-alt"></i></button>
-                                <button title="حذف" class="bg-red-600 text-white w-8 h-8 rounded-lg btn-animate text-sm flex items-center justify-center" onclick="deleteStock('${d.id}')"><i class="fas fa-trash-alt"></i></button>
-                            </td>
-                        </tr>
-                    `);
-                });
-                document.getElementById("lowStockCountCard").textContent = lowStockCount;
+                document.getElementById('lowStockCountCard').textContent = lowStockCount;
                 refreshDatalist();
-            }, (error) => {
-                console.error("خطأ في جلب المخزون:", error);
-                toast("❌ فشل تحميل بيانات المخزون.");
             });
         }
-        
-        // وظيفة لبدء تعديل منتج موجود
-        window.startEditStock = function(id) {
-            const product = allProducts.find(p => p.id === id);
-            if (!product) return;
-            document.getElementById("productName").value = product.name;
-            document.getElementById("productQty").value = product.qty;
-            document.getElementById("productCost").value = product.cost;
-            document.getElementById("productPrice").value = product.price;
-            currentEditId = id;
-            saveStockBtn.innerHTML = '<i class="fas fa-edit ml-2"></i>تعديل المنتج';
-            showSection("add-stock");
-        }
 
+        // وظيفة لتعبئة نموذج التعديل
+        window.editItem = function(id) {
+            const product = allProducts.find(p => p.id === id);
+            if (product) {
+                document.getElementById("productName").value = product.name;
+                document.getElementById("productQty").value = product.qty;
+                document.getElementById("productCost").value = product.cost;
+                document.getElementById("productPrice").value = product.price;
+                currentEditId = id;
+                saveStockBtn.innerHTML = '<i class="fas fa-edit ml-2"></i>تحديث';
+                document.getElementById("productName").disabled = true; // منع تعديل الاسم
+                showSection('add-stock');
+            }
+        }
+        
         // وظيفة لحذف منتج
-        window.deleteStock = function(id) {
-            showConfirmModal(async (confirmed) => {
-                if (confirmed) {
+        window.deleteItem = function(id) {
+            if (!userId) {
+                toast("⚠️ يجب تسجيل الدخول أولاً.");
+                return;
+            }
+            showConfirmModal(async (isConfirmed) => {
+                if (isConfirmed) {
                     try {
-                        const docRef = doc(db, `users/${userId}/stock`, id);
+                        const docRef = doc(db, `artifacts/${appId}/users/${userId}/stock`, id);
                         await deleteDoc(docRef);
-                        toast("🗑️ تم حذف المنتج");
+                        toast("🗑️ تم حذف المنتج بنجاح.");
                     } catch (err) {
                         console.error(err);
-                        toast("❌ حدث خطأ أثناء الحذف");
+                        toast("❌ حدث خطأ أثناء الحذف.");
                     }
                 }
             });
         }
 
-        // تحديث قائمة المنتجات للاقتراحات
-        function refreshDatalist() {
-            const datalist = document.getElementById("productsDatalist");
-            datalist.innerHTML = "";
-            allProducts.forEach(p => {
-                datalist.insertAdjacentHTML("beforeend", `<option value="${p.name}"></option>`);
+        // ======= دوال المبيعات (Sales) =======
+        let currentInvoiceItems = [];
+        const currentInvoicePreview = document.getElementById('currentInvoicePreview');
+        const currentInvoiceItemsTable = document.getElementById('currentInvoiceItemsTable');
+        const currentInvoiceTotal = document.getElementById('currentInvoiceTotal');
+
+        const salesForm = document.getElementById('salesForm');
+        const saleProductInput = document.getElementById('saleProduct');
+        const saleQtyInput = document.getElementById('saleQty');
+        const salePriceHint = document.getElementById('salePriceHint');
+
+        // تحديث قائمة المنتجات في الـ datalist
+        window.refreshDatalist = function() {
+            const datalist = document.getElementById('productsDatalist');
+            datalist.innerHTML = '';
+            allProducts.forEach(product => {
+                const option = document.createElement('option');
+                option.value = product.name;
+                datalist.appendChild(option);
             });
         }
-        
-        // ======= دوال المبيعات (Sales) =======
-        const salesForm = document.getElementById("salesForm");
-        const saleProductInput = document.getElementById("saleProduct");
-        const salePriceHint = document.getElementById("salePriceHint");
-        let currentInvoice = {
-            customerName: "",
-            items: [],
-            total: 0,
-            profit: 0
-        };
 
-        // عرض السعر عند اختيار منتج
+        // عرض سعر المنتج عند إدخال اسمه
         saleProductInput.addEventListener('input', () => {
-            const selectedProduct = allProducts.find(p => p.name === saleProductInput.value);
-            if (selectedProduct) {
-                salePriceHint.textContent = `السعر: ${selectedProduct.price.toFixed(2)}, الكمية المتاحة: ${selectedProduct.qty}`;
+            const productName = saleProductInput.value;
+            const product = allProducts.find(p => p.name === productName);
+            if (product) {
+                salePriceHint.textContent = `السعر: ${product.price.toFixed(2)}`;
             } else {
-                salePriceHint.textContent = "";
+                salePriceHint.textContent = '';
             }
         });
 
-        // إضافة منتج للفاتورة الحالية
-        salesForm.addEventListener("submit", (e) => {
+        // إضافة عنصر إلى الفاتورة المؤقتة
+        salesForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!userId) {
-                toast("⚠️ يجب تسجيل الدخول أولاً.");
-                return;
-            }
-            const productName = document.getElementById("saleProduct").value;
-            const qty = parseInt(document.getElementById("saleQty").value);
+            const productName = saleProductInput.value;
+            const qty = parseInt(saleQtyInput.value);
 
             const product = allProducts.find(p => p.name === productName);
-
+            
             if (!product) {
-                toast("❌ المنتج غير موجود");
-                return;
-            }
-            if (isNaN(qty) || qty <= 0) {
-                toast("⚠️ كمية غير صالحة");
-                return;
-            }
-            if (qty > product.qty) {
-                toast(`⚠️ الكمية المطلوبة (${qty}) أكبر من المتوفر (${product.qty})`);
+                toast("⚠️ المنتج غير موجود في المخزون!");
                 return;
             }
 
-            const existingItem = currentInvoice.items.find(item => item.productId === product.id);
-            if(existingItem) {
-                 if (existingItem.qty + qty > product.qty) {
-                    toast(`⚠️ الكمية الإجمالية (${existingItem.qty + qty}) أكبر من المتوفر (${product.qty})`);
-                    return;
-                }
+            if (qty > product.qty) {
+                toast(`⚠️ الكمية المطلوبة (${qty}) أكبر من الكمية المتاحة في المخزون (${product.qty}).`);
+                return;
+            }
+
+            const existingItem = currentInvoiceItems.find(item => item.productName === productName);
+
+            if (existingItem) {
+                // تحديث الكمية
                 existingItem.qty += qty;
                 existingItem.total = existingItem.qty * existingItem.price;
             } else {
-                currentInvoice.items.push({
-                    productId: product.id,
-                    name: product.name,
+                // إضافة منتج جديد
+                currentInvoiceItems.push({
+                    productName: product.name,
+                    qty: qty,
                     price: product.price,
                     cost: product.cost,
-                    qty,
-                    total: qty * product.price,
+                    total: qty * product.price
                 });
             }
 
-            document.getElementById("currentInvoicePreview").classList.remove("hidden");
+            updateCurrentInvoiceUI();
             salesForm.reset();
-            salePriceHint.textContent = "";
-            renderCurrentInvoice();
+            salePriceHint.textContent = '';
+            toast('✅ تم إضافة المنتج إلى الفاتورة.');
         });
-
-        // عرض الفاتورة الحالية
-        function renderCurrentInvoice() {
-            const tbody = document.getElementById("currentInvoiceItemsTable");
-            tbody.innerHTML = "";
+        
+        // تحديث عرض الفاتورة المؤقتة
+        function updateCurrentInvoiceUI() {
+            currentInvoicePreview.classList.remove('hidden');
+            currentInvoiceItemsTable.innerHTML = '';
             let total = 0;
-            currentInvoice.items.forEach((item, index) => {
-                tbody.insertAdjacentHTML("beforeend", `
-                    <tr>
-                        <td class="p-2">${item.name}</td>
-                        <td class="p-2">${item.qty}</td>
-                        <td class="p-2">${item.total.toFixed(2)}</td>
-                        <td class="p-2 text-center">
-                            <button title="إزالة" class="bg-red-500 text-white w-6 h-6 rounded-full btn-animate text-xs flex items-center justify-center" onclick="removeFromInvoice(${index})"><i class="fas fa-times"></i></button>
-                        </td>
-                    </tr>
-                `);
-                total += item.total;
-            });
-            currentInvoice.total = total;
-            document.getElementById("currentInvoiceTotal").textContent = total.toFixed(2);
-        }
-
-        // إزالة عنصر من الفاتورة
-        window.removeFromInvoice = function(index) {
-            currentInvoice.items.splice(index, 1);
-            renderCurrentInvoice();
-            if(currentInvoice.items.length === 0){
-                 document.getElementById("currentInvoicePreview").classList.add("hidden");
-            }
-        }
-
-        // حفظ الفاتورة النهائية
-        window.finalizeAndSaveInvoice = async function() {
-            if (currentInvoice.items.length === 0) {
-                toast("⚠️ الفاتورة فارغة!");
+            
+            if (currentInvoiceItems.length === 0) {
+                currentInvoicePreview.classList.add('hidden');
                 return;
             }
+
+            currentInvoiceItems.forEach((item, index) => {
+                total += item.total;
+                const row = `
+                    <tr class="hover:bg-gray-100 transition-colors">
+                        <td class="px-4 py-2 md:px-6 md:py-4 whitespace-nowrap text-sm text-gray-900">${item.productName}</td>
+                        <td class="px-4 py-2 md:px-6 md:py-4 whitespace-nowrap text-sm text-gray-900">${item.qty}</td>
+                        <td class="px-4 py-2 md:px-6 md:py-4 whitespace-nowrap text-sm text-gray-900">${item.total.toFixed(2)}</td>
+                        <td class="px-4 py-2 md:px-6 md:py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                            <button onclick="removeItemFromInvoice(${index})" class="text-red-600 hover:text-red-900"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+                currentInvoiceItemsTable.innerHTML += row;
+            });
+
+            currentInvoiceTotal.textContent = total.toFixed(2);
+        }
+
+        // إزالة عنصر من الفاتورة المؤقتة
+        window.removeItemFromInvoice = function(index) {
+            currentInvoiceItems.splice(index, 1);
+            updateCurrentInvoiceUI();
+            toast("تم حذف المنتج من الفاتورة.");
+        }
+
+        // حفظ الفاتورة في قاعدة البيانات
+        window.finalizeAndSaveInvoice = async function() {
             if (!userId) {
                 toast("⚠️ يجب تسجيل الدخول أولاً.");
                 return;
             }
+            if (currentInvoiceItems.length === 0) {
+                toast("⚠️ الفاتورة فارغة.");
+                return;
+            }
 
-            currentInvoice.customerName = document.getElementById("customerName").value.trim() || "زبون";
-            currentInvoice.createdAt = new Date();
-            
-            // حساب الربح الإجمالي للفاتورة
-            currentInvoice.profit = currentInvoice.items.reduce((acc, item) => {
-                return acc + ((item.price - item.cost) * item.qty);
-            }, 0);
-
-            try {
-                // حفظ الفاتورة في Firestore
-                const salesCollection = collection(db, `users/${userId}/sales`);
-                const savedInvoiceRef = await addDoc(salesCollection, currentInvoice);
-
-                // تحديث كميات المخزون
-                for (const item of currentInvoice.items) {
-                    const productRef = doc(db, `users/${userId}/stock`, item.productId);
-                    const productDoc = await getDoc(productRef);
-                    if (productDoc.exists()) {
-                        const currentQty = productDoc.data().qty;
-                        await updateDoc(productRef, { qty: currentQty - item.qty });
+            // تحديث الكميات في المخزون
+            for (const item of currentInvoiceItems) {
+                const product = allProducts.find(p => p.name === item.productName);
+                if (product) {
+                    const newQty = product.qty - item.qty;
+                    try {
+                        const productDocRef = doc(db, `artifacts/${appId}/users/${userId}/stock`, product.id);
+                        await updateDoc(productDocRef, { qty: newQty });
+                    } catch(err) {
+                        console.error("خطأ في تحديث المخزون:", err);
+                        toast(`❌ فشل تحديث كمية المنتج ${product.name}`);
+                        return;
                     }
                 }
+            }
+            
+            const total = currentInvoiceItems.reduce((acc, item) => acc + item.total, 0);
+            const profit = currentInvoiceItems.reduce((acc, item) => acc + (item.price - item.cost) * item.qty, 0);
+            const customerName = document.getElementById('customerName').value || 'عميل نقدي';
 
-                toast("✅ تم حفظ الفاتورة بنجاح!");
+            try {
+                const salesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/sales`);
+                const docRef = await addDoc(salesCollectionRef, {
+                    customerName: customerName,
+                    items: JSON.stringify(currentInvoiceItems), // نحفظ المصفوفة كـ JSON string
+                    total: total,
+                    profit: profit,
+                    createdAt: serverTimestamp()
+                });
                 
-                const finalInvoiceData = { id: savedInvoiceRef.id, ...currentInvoice };
-                window.lastInvoiceData = finalInvoiceData; // تخزين بيانات الفاتورة للطباعة
-                displayInvoice(finalInvoiceData);
+                toast('✅ تم حفظ الفاتورة بنجاح!');
+                window.lastInvoiceData = { id: docRef.id, customerName, total, items: currentInvoiceItems, createdAt: new Date() };
+                
+                // هنا نقوم بإنشاء كائن جديد لكي نضمن أن `items` هو مصفوفة قبل تمريره إلى `displayInvoice`
+                displayInvoice({
+                    id: docRef.id,
+                    customerName: customerName, // هذا هو الاسم الذي سيظهر في الفاتورة النهائية.
+                    total: total,
+                    items: currentInvoiceItems,
+                    createdAt: serverTimestamp(),
+                });
+                currentInvoiceItems = [];
+                updateCurrentInvoiceUI();
+                showSection('invoice');
 
-                // إعادة تعيين كل شيء
-                currentInvoice = { customerName: "", items: [], total: 0, profit: 0 };
-                document.getElementById("currentInvoicePreview").classList.add("hidden");
-                renderCurrentInvoice();
-                document.getElementById("customerName").value = "";
-
-            } catch (err) {
+            } catch(err) {
                 console.error("خطأ في حفظ الفاتورة:", err);
                 toast("❌ حدث خطأ أثناء حفظ الفاتورة.");
             }
         }
         
-        // ======= عرض الفاتورة وطباعتها (Invoice Display) =======
-        window.lastInvoiceData = null; // سيتم استخدام هذا لطباعة الفاتورة الحالية
-
-        function displayInvoice(invoiceData) {
-            document.getElementById("invoiceNo").textContent = invoiceData.id;
-            const date = invoiceData.createdAt.seconds ? new Date(invoiceData.createdAt.seconds * 1000) : new Date();
-            document.getElementById("invoiceDate").textContent = date.toLocaleString('ar-EG');
-            document.getElementById("invCustomer").textContent = invoiceData.customerName;
+        // عرض فاتورة محددة
+        window.displayInvoice = function(invoiceData) {
+            const invItems = document.getElementById('invItems');
             
-            const itemsTbody = document.getElementById("invItems");
-            itemsTbody.innerHTML = "";
-            invoiceData.items.forEach(item => {
-                itemsTbody.insertAdjacentHTML("beforeend", `
-                    <tr class="border-b">
-                        <td class="p-2">${item.name}</td>
+            // إصلاح: قم بتحويل الـ `items` إذا كانت سلسلة نصية
+            const items = typeof invoiceData.items === 'string' ? JSON.parse(invoiceData.items) : invoiceData.items;
+
+            // إصلاح: تحقق من وجود `createdAt` قبل تحويله
+            const date = invoiceData.createdAt && typeof invoiceData.createdAt.toDate === 'function' ? invoiceData.createdAt.toDate() : new Date();
+
+            document.getElementById('invoiceNo').textContent = invoiceData.id;
+            document.getElementById('invoiceDate').textContent = date.toLocaleDateString('ar-EG');
+            
+            // هذا هو المكان الذي نأخذ فيه اسم العميل من بيانات الفاتورة ونعرضه
+            document.getElementById('invCustomer').textContent = invoiceData.customerName;
+
+            document.getElementById('invTotal').textContent = invoiceData.total.toFixed(2);
+
+            invItems.innerHTML = '';
+            items.forEach(item => {
+                const row = `
+                    <tr>
+                        <td class="p-2">${item.productName}</td>
                         <td class="p-2">${item.price.toFixed(2)}</td>
                         <td class="p-2">${item.qty}</td>
                         <td class="p-2">${item.total.toFixed(2)}</td>
                     </tr>
-                `);
+                `;
+                invItems.innerHTML += row;
             });
-
-            document.getElementById("invTotal").textContent = invoiceData.total.toFixed(2);
-            showSection("invoice");
+            showSection('invoice');
         }
-        
-        // ======= قائمة الفواتير السابقة (Invoice List) =======
-        function loadSales() {
-            if (!userId) return;
-            const listEl = document.getElementById("salesList");
-            const salesCollectionRef = collection(db, `users/${userId}/sales`);
-            const q = query(salesCollectionRef, orderBy("createdAt", "desc"));
 
+        // توليد ملف PDF للفاتورة
+        window.generateInvoicePDF = async function(invoiceData) {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4', true);
+            const invoiceElement = document.getElementById('invoice').querySelector('.bg-white');
+            
+            // تهيئة الخط العربي
+            const fontUrl = 'https://cdnjs.cloudflare.com/ajax/libs/jsPDF/2.5.1/js/jspdf.umd.min.js'; // This is a placeholder, a custom font needs to be provided
+
+            toast('جاري توليد ملف PDF...');
+
+            const canvas = await html2canvas(invoiceElement, {
+                useCORS: true,
+                scale: 2,
+            });
+            const imgData = canvas.toDataURL('image/png');
+            const imgWidth = 190;
+            const pageHeight = 297;
+            const imgHeight = canvas.height * imgWidth / canvas.width;
+            let heightLeft = imgHeight;
+            let position = 0;
+
+            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            pdf.save(`فاتورة-${invoiceData.id}.pdf`);
+            toast('✅ تم تحميل ملف PDF.');
+        }
+
+        // عرض قائمة الفواتير
+        window.loadSales = function() {
+            if (!userId) {
+                console.log("UserID is not defined, skipping loadSales.");
+                return;
+            }
+            const salesList = document.getElementById('salesList');
+            const salesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/sales`);
+            const q = query(salesCollectionRef);
+            
             onSnapshot(q, (snapshot) => {
-                listEl.innerHTML = "";
+                salesList.innerHTML = '';
                 if (snapshot.empty) {
-                    listEl.innerHTML = '<li class="p-4 text-gray-500 text-center">لا توجد فواتير سابقة.</li>';
+                    salesList.innerHTML = '<li class="p-4 text-gray-500 text-center">لا يوجد فواتير سابقة.</li>';
                     return;
                 }
-                snapshot.forEach(d => {
-                    const sale = d.data();
-                    const saleDate = sale.createdAt ? new Date(sale.createdAt.seconds * 1000).toLocaleString('ar-EG') : 'غير معروف';
-                    listEl.insertAdjacentHTML("beforeend", `
-                        <li class="bg-white rounded-xl shadow-md p-4 flex justify-between items-center flex-wrap gap-2">
-                            <div>
-                                <p class="font-bold text-gray-800">فاتورة #${d.id.substring(0, 8)}...</p>
-                                <p class="text-sm text-gray-500">${sale.customerName} - ${saleDate}</p>
-                            </div>
-                            <div class="flex items-center">
-                                <span class="font-bold text-lg text-indigo-600">${sale.total.toFixed(2)}</span>
-                                <button class="mr-4 bg-blue-500 text-white px-3 py-1 rounded-lg text-sm btn-animate" onclick='viewInvoice("${d.id}")'><i class="fas fa-eye ml-2"></i>عرض</button>
-                            </div>
-                        </li>
-                    `);
+                snapshot.forEach(doc => {
+                    const invoice = { id: doc.id, ...doc.data() };
+                    const date = invoice.createdAt && invoice.createdAt.toDate ? invoice.createdAt.toDate() : new Date();
+                    const li = document.createElement('li');
+                    li.className = 'bg-white rounded-xl shadow-md p-4 md:p-6 flex justify-between items-center transition-transform hover:scale-[1.01] cursor-pointer';
+                    li.innerHTML = `
+                        <div>
+                            <p class="font-bold text-lg text-gray-800">فاتورة رقم: ${doc.id.substring(0, 6)}</p>
+                            <p class="text-sm text-gray-600">التاريخ: ${date.toLocaleDateString('ar-EG')}</p>
+                            <p class="text-sm text-gray-600">العميل: ${invoice.customerName}</p>
+                        </div>
+                        <div class="text-left">
+                            <p class="text-xl font-extrabold text-indigo-600">${invoice.total.toFixed(2)}</p>
+                        </div>
+                    `;
+                    li.addEventListener('click', () => {
+                        displayInvoice(invoice);
+                        window.lastInvoiceData = invoice;
+                    });
+                    salesList.appendChild(li);
                 });
-            }, (error) => {
-                console.error("خطأ في جلب المبيعات:", error);
-                toast("❌ فشل تحميل الفواتير.");
-                listEl.innerHTML = '<li class="p-4 text-red-500 text-center">حدث خطأ أثناء تحميل الفواتير.</li>';
             });
         }
-        
-        window.viewInvoice = async function(id) {
-            try {
-                const docRef = doc(db, `users/${userId}/sales`, id);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const invoiceData = { id: docSnap.id, ...docSnap.data() };
-                    window.lastInvoiceData = invoiceData; // تخزين بيانات الفاتورة للطباعة
-                    displayInvoice(invoiceData);
-                } else {
-                    toast("❌ الفاتورة غير موجودة.");
-                }
-            } catch(err) {
-                 console.error("خطأ في عرض الفاتورة:", err);
-                 toast("❌ حدث خطأ.");
-            }
-        }
 
-        // ======= لوحة التحكم (Dashboard) =======
-        async function loadDashboard() {
-            if (!userId) return;
-            const salesCollectionRef = collection(db, `users/${userId}/sales`);
+        // ======= دوال لوحة التحكم (Dashboard) =======
+        window.loadDashboard = async function() {
+            if (!userId) {
+                console.log("UserID is not defined, skipping loadDashboard.");
+                return;
+            }
+            const salesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/sales`);
             const now = new Date();
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-            const q = query(salesCollectionRef, where("createdAt", ">=", startOfMonth));
             
+            // حساب إجمالي المبيعات والأرباح الشهرية
+            const q = query(salesCollectionRef, where('createdAt', '>=', startOfMonth));
             onSnapshot(q, (snapshot) => {
                 let monthlySales = 0;
                 let monthlyProfit = 0;
-                
                 snapshot.forEach(doc => {
                     const sale = doc.data();
-                    monthlySales += sale.total || 0;
-                    monthlyProfit += sale.profit || 0;
+                    monthlySales += sale.total;
+                    monthlyProfit += sale.profit;
                 });
-                
-                document.getElementById("monthlySalesCard").textContent = monthlySales.toFixed(2);
-                document.getElementById("monthlyProfitCard").textContent = monthlyProfit.toFixed(2);
-            }, (error) => {
-                 console.error("Error loading monthly data: ", error);
+                document.getElementById('monthlySalesCard').textContent = monthlySales.toFixed(2);
+                document.getElementById('monthlyProfitCard').textContent = monthlyProfit.toFixed(2);
             });
-            
-            // حساب إجمالي الأرباح (من كل الفواتير)
-             const allSalesQuery = query(collection(db, `users/${userId}/sales`));
-             try {
-                const allSalesSnapshot = await getDocs(allSalesQuery);
-                let totalProfit = 0;
-                allSalesSnapshot.forEach(doc => {
-                    totalProfit += doc.data().profit || 0;
-                });
-                document.getElementById('profitSummary').textContent = `${totalProfit.toFixed(2)}`;
-            } catch (error) {
-                console.error("Error getting total profit: ", error);
-                document.getElementById('profitSummary').textContent = 'خطأ في الحساب';
-            }
-        }
-        
-        // ======= إنشاء PDF (PDF Generation) =======
-        window.generateInvoicePDF = async function(invoiceData) {
-            if (!invoiceData) {
-                toast("❌ لا توجد بيانات فاتورة للطباعة.");
-                return;
-            }
-            
-            const invoiceSection = document.getElementById('invoice');
-            const invoiceElement = invoiceSection.querySelector("div"); // The white container
-            
-            // Temporarily make the invoice section visible for rendering
-            const wasActive = invoiceSection.classList.contains('active');
-            if (!wasActive) {
-                invoiceSection.classList.add('active');
-            }
 
+            // حساب إجمالي الأرباح الكلية
             try {
-                const { jsPDF } = window.jspdf;
-                const canvas = await html2canvas(invoiceElement, { scale: 2, useCORS: true });
-                const imgData = canvas.toDataURL('image/png');
-                
-                const pdf = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'pt',
-                    format: 'a4'
+                const allSalesDocs = await getDocs(salesCollectionRef);
+                let totalProfit = 0;
+                allSalesDocs.forEach(doc => {
+                    totalProfit += doc.data().profit;
                 });
-                
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = pdf.internal.pageSize.getHeight();
-                const imgWidth = canvas.width;
-                const imgHeight = canvas.height;
-                const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-                const imgX = (pdfWidth - imgWidth * ratio) / 2;
-                const imgY = 10;
-
-                pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
-                pdf.save(`invoice-${invoiceData.id.substring(0,8)}.pdf`);
-                toast("📄 تم إنشاء ملف PDF بنجاح");
-
-            } catch (error) {
-                console.error("خطأ في إنشاء PDF:", error);
-                toast("❌ فشل إنشاء ملف PDF");
-            } finally {
-                 // Hide the invoice section again if it wasn't active before
-                if (!wasActive) {
-                    invoiceSection.classList.remove('active');
-                }
+                document.getElementById('profitSummary').textContent = totalProfit.toFixed(2);
+            } catch (err) {
+                console.error("Error getting total profit:", err);
             }
         }
 
-
-        // ======= التشغيل عند تحميل الصفحة =======
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeFirebase();
-            showSection("dashboard"); // ابدأ بالواجهة الرئيسية
-        });
+        // تهيئة التطبيق عند تحميل الصفحة
+        window.onload = initializeFirebase;
     </script>
 </body>
 </html>
-
